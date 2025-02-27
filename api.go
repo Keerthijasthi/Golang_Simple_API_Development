@@ -52,9 +52,35 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully."})
 }
 
+func getUser(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
+
+	if email == "" || password == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	for _, user := range users {
+		if user.Email == email && user.Password == password {
+			response := map[string]string{
+				"firstname": user.Firstname,
+				"lastname":  user.Lastname,
+				"email":     user.Email,
+			}
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
+	json.NewEncoder(w).Encode(map[string]string{"error": "Invalid email or password."})
+}
+
 func main() {
 	r := mux.NewRouter()                              //Create a "traffic controller" for web requests
 	r.HandleFunc("/user", createUser).Methods("POST") //Tell the "controller" what to do for specific requests
+	r.HandleFunc("/user", getUser).Methods("GET")
 
 	fmt.Println("Server listening on port 8080") //just a message to the programmer that the server is starting
 	log.Fatal(http.ListenAndServe(":8080", r))   //Start the server and use the traffic controller r to decide what to do with incoming requests.
