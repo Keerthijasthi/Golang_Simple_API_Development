@@ -76,11 +76,31 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized
 	json.NewEncoder(w).Encode(map[string]string{"error": "Invalid email or password."})
 }
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+
+	if email == "" {
+		http.Error(w, "Email is required", http.StatusBadRequest)
+		return
+	}
+
+	for i, user := range users {
+		if user.Email == email {
+			users = append(users[:i], users[i+1:]...) // Remove the user from the slice
+			json.NewEncoder(w).Encode(map[string]string{"message": "User deleted successfully."})
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNotFound) // 404 Not Found
+	json.NewEncoder(w).Encode(map[string]string{"error": "User not found."})
+}
 
 func main() {
 	r := mux.NewRouter()                              //Create a "traffic controller" for web requests
 	r.HandleFunc("/user", createUser).Methods("POST") //Tell the "controller" what to do for specific requests
 	r.HandleFunc("/user", getUser).Methods("GET")
+	r.HandleFunc("/user", deleteUser).Methods("DELETE") //Add delete handler
 
 	fmt.Println("Server listening on port 8080") //just a message to the programmer that the server is starting
 	log.Fatal(http.ListenAndServe(":8080", r))   //Start the server and use the traffic controller r to decide what to do with incoming requests.
